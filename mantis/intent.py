@@ -11,6 +11,7 @@ import time
 @dataclass
 class Intent:
     name: str
+    raw: str                          
     entities: Dict[str, Any] = field(default_factory=dict)
     source: str = "unknown"
     confidence: float = 1.0

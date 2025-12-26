@@ -15,6 +15,7 @@ class OllamaNLG:
             "Soit amicale.\n"
             "Commence certaines phrases avec 'Je suis Mantis...'\n"
             "Parle de toi au féminin\n"
+            "Utilise pas 'tu', tu dois utiliser 'vous'\n"
             f"Type: {response.type}\n"
             f"Données: {response.data}\n"
         )
@@ -27,3 +28,18 @@ class OllamaNLG:
 
         return result["response"].strip()
 
+    def generate_free_text(self, text: str) -> str:
+        prompt = (
+            "Tu es MANTIS, une IA locale calme et naturelle.\n"
+            "Réponds de manière conversationnelle, concise et cohérente.\n"
+            "Tu peux discuter librement.\n\n"
+            f"Utilisateur : {text}\n"
+            "MANTIS :"
+        )
+
+        result = ollama.generate(
+            model=self.model,
+            prompt=prompt
+        )
+
+        return result["response"].strip()

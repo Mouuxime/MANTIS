@@ -16,6 +16,7 @@ from mantis.intent_parser import IntentParser
 from mantis.response import ResponseBuilder
 from mantis.nlg.templates import TemplatesNLG
 from mantis.nlg.ollama import OllamaNLG
+from mantis.tts.piper import PiperTTS
 
 
 class Kernel:
@@ -39,6 +40,11 @@ class Kernel:
         self.response_builder = ResponseBuilder()
 
         self.nlg = OllamaNLG(model="mistral")
+
+        self.tts = PiperTTS(
+            piper_path=r"C:\piper\piper.exe",
+            model_path=r"C:\piper\voices\fr_FR-upmc-medium.onnx"
+        )
 
 
     def start(self):
@@ -76,8 +82,8 @@ class Kernel:
         result = self.router.route(intent, self.context)
 
         if result is None:
-            self.logger.info("No skill could handle intent")
-            return "Je ne sais pas faire ça pour le moment."
+            self.logger.info("No intent matched, using conversational fallback")
+            return self.nlg.generate_free_text(intent.raw)
             
         response = self.response_builder.build(intent, result)
 
@@ -101,13 +107,18 @@ class Kernel:
                 intent = self.intent_parser.parse(text)
 
                 if intent is None:
-                    print("Je ne comprends pas.")
-                    continue
+                    intent = Intent(
+                        name="unknown",
+                        raw=text,
+                        source="cli",
+                        confidence=0.0
+                    )
 
                 response = self.on_intent(intent)
 
                 if response:
                     print(response)
+                    self.tts.speak(response)
 
             except (EOFError, KeyboardInterrupt):
                 self.stop()

@@ -13,6 +13,7 @@ class IntentParser:
         if text in ("status", "system status", "system.status"):
             return Intent(
                 name="system.status",
+                raw=text,
                 source="cli",
                 confidence=1.0
             )
