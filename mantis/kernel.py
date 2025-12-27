@@ -2,6 +2,8 @@
 MANTIS - Kernel
 """
 
+import subprocess
+import os
 import sys
 import time
 import getpass
@@ -19,6 +21,16 @@ from mantis.nlg.ollama import OllamaNLG
 from mantis.tts.piper import PiperTTS
 from mantis.tts.dummy import DummyTTS
 
+LOCK_FILE = "mantis.lock"
+def pid_is_running(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+    else:
+        return False
 
 class Kernel:
     def __init__(self):
@@ -58,6 +70,16 @@ class Kernel:
 
 
     def start(self):
+        try:
+            self.lock_fd = os.open(
+                LOCK_FILE,
+                os.O_CREAT | os.O_EXCL | os.O_WRONLY
+            )
+            os.write(self.lock_fd, str(os.getpid()).encode())
+        except FileExistsError:
+            self.logger.error("Another instance of Mantis is already running. Exiting")
+            sys.exit(1)
+
         self.running = True
         self.logger.info("Kernel started")
 
@@ -73,7 +95,25 @@ class Kernel:
     def stop(self, *_):
         self.logger.info("Kernel stopping...")
         self.running = False
+        
+        try:
+            os.close(self.lock_fd)
+            os.remove(LOCK_FILE)
+        except Exception:
+            pass
+
         sys.exit(0)
+
+
+    def restart(self):
+        self.logger.info("Redémarrage de Mantis")
+
+        python = sys.executable
+        subprocess.Popen(
+            [python, "-m", "mantis"],
+            creationflags=subprocess.CREATE_NEW_CONSOLE
+        )
+        self.stop()
 
 
     def on_system_start(self, payload=None):
@@ -127,6 +167,10 @@ class Kernel:
 
                 if text.strip().lower() in ("exit", "quit"):
                     self.stop()
+                    return
+                
+                if text.strip().lower() in ("restart", "reload", "load"):
+                    self.restart()
                     return
                 
                 intent = self.intent_parser.parse(text)
