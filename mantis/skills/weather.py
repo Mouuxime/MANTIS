@@ -5,7 +5,6 @@ Weather Skill
 from mantis.skills.base import Skill
 from mantis.intent import Intent
 
-
 class WeatherSkill(Skill):
     name = "weather"
 
@@ -17,7 +16,7 @@ class WeatherSkill(Skill):
 
     def execute(self, intent: Intent, context):
         # Placeholder weather data (V1)
-        location = intent.data.get("location", "unknown") if intent.data else "unknown"
+        location = intent.entities.get("location", "unknown")
 
         return {
             "type": "skill",

@@ -14,5 +14,6 @@ class SkillRouter:
     def route(self, intent: Intent, context):
         for skill in self.skills:
             if skill.can_handle(intent, context):
-                return skill.execute(intent, context)
+                result = skill.execute(intent, context)
+                return result
         return None

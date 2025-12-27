@@ -18,12 +18,19 @@ class IntentParser:
             )
 
         if any(word in text for word in ("météo", "meteo", "temps", "weather")):
+            location = None
+
+            for preposition in (" à ", " sur ", " pour "):
+                if preposition in text:
+                    location = text.split(preposition, 1)[1].strip()
+                    break
+            
             return Intent(
                 name="weather.current",
                 raw=text,
                 source="cli",
                 confidence=0.7,
-                entities={}
+                entities={"location": location} if location else {}
             )
 
         return None
