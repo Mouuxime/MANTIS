@@ -17,4 +17,13 @@ class IntentParser:
                 confidence=1.0
             )
 
+        if any(word in text for word in ("météo", "meteo", "temps", "weather")):
+            return Intent(
+                name="weather.current",
+                raw=text,
+                source="cli",
+                confidence=0.7,
+                entities={}
+            )
+
         return None

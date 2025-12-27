@@ -1,6 +1,5 @@
 """
 System Skill
-Basic system-related actions
 """
 
 from mantis.skills.base import Skill
