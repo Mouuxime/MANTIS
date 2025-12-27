@@ -1,6 +1,5 @@
 """
-MANTIS Intent Parser
-Simple rule-based text to Intent parser
+MANTIS - Intent Parser
 """
 
 from mantis.intent import Intent

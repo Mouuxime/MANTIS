@@ -1,6 +1,5 @@
 """
-MANTIS Intent
-Structured representation of an intention
+MANTIS - Intent
 """
 
 from dataclasses import dataclass, field

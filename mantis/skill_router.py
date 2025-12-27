@@ -1,6 +1,5 @@
 """
-MANTIS Skill Router
-Routes intents to the appropriate skill.
+MANTIS - Skill Router
 """
 
 from typing import List

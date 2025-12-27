@@ -1,6 +1,5 @@
 """
-MANTIS Response system
-Defines structured responses produced by the core logic
+MANTIS - Response 
 """
 
 class Response:

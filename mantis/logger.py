@@ -1,6 +1,5 @@
 """
-MANTIS Logger
-Centralized logging system
+MANTIS - Logger
 """
 
 import logging

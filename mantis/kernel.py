@@ -1,11 +1,11 @@
 """
-MANTIS Kernel
-Core lifecycle manager
+MANTIS - Kernel
 """
 
 import sys
 import time
 import getpass
+
 from mantis.event_bus import EventBus
 from mantis.logger import setup_logger
 from mantis.context import Context
@@ -17,6 +17,7 @@ from mantis.response import ResponseBuilder
 from mantis.nlg.templates import TemplatesNLG
 from mantis.nlg.ollama import OllamaNLG
 from mantis.tts.piper import PiperTTS
+from mantis.tts.dummy import DummyTTS
 
 
 class Kernel:
@@ -25,6 +26,7 @@ class Kernel:
         self.logger = setup_logger()
 
         self.context = Context()
+        
         self.event_bus = EventBus()
 
         self.skills = [
@@ -39,12 +41,20 @@ class Kernel:
 
         self.response_builder = ResponseBuilder()
 
-        self.nlg = OllamaNLG(model="mistral")
-
-        self.tts = PiperTTS(
-            piper_path=r"C:\piper\piper.exe",
-            model_path=r"C:\piper\voices\fr_FR-upmc-medium.onnx"
-        )
+        ENABLE_LLM = True
+        if ENABLE_LLM:
+            self.nlg = OllamaNLG(model="mistral")
+        else:
+            self.nlg = TemplatesNLG()
+        
+        ENABLE_TTS = True
+        if ENABLE_TTS:
+            self.tts = PiperTTS(
+                piper_path=r"C:\piper\piper.exe",
+                model_path=r"C:\piper\voices\fr_FR-upmc-medium.onnx"
+            )
+        else:
+            self.tts = DummyTTS()
 
 
     def start(self):
@@ -69,6 +79,7 @@ class Kernel:
     def on_system_start(self, payload=None):
         self.context.set("system.status", "running")
         self.context.set("user", getpass.getuser())
+        self.context.set("introduced", False)
         
         self.logger.info(f"Context initialized : {self.context.dump()}")
 
@@ -79,17 +90,31 @@ class Kernel:
             f"(source={intent.source}, confidence={intent.confidence})"
             )
 
+        introduced = self.context.get("introduced", False)
+
         result = self.router.route(intent, self.context)
 
-        if result is None:
-            self.logger.info("No intent matched, using conversational fallback")
-            return self.nlg.generate_free_text(intent.raw)
+        if result is not None:
+            response = self.response_builder.build(intent, result)
+
+            text = self.nlg.generate(
+                response=response,
+                introduce=not introduced
+            )
+        
+        else:
+            text = self.nlg.generate(
+                user_text=intent.raw,
+                introduce=not introduced
+            )
             
-        response = self.response_builder.build(intent, result)
+        if not introduced:
+            self.context.set("introduced", True)
 
-        text = self.nlg.generate(response)
-
-        self.logger.info(f"Skill result: {result}")
+        self.logger.info(f"Final response generated")
+        self.logger.info(
+            f"INTRODUCE={not introduced} | introduced={introduced}"
+        )
         return text
     
 

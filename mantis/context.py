@@ -1,6 +1,5 @@
 """
-MANTIS Context
-Global shared state
+MANTIS - Context
 """
 
 from typing import Any, Dict

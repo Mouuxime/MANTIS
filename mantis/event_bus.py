@@ -1,6 +1,5 @@
 """
-MANTIS Event Bus
-Simple synchronous pub/sub system
+MANTIS - Event Bus
 """
 
 from collections import defaultdict

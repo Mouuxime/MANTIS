@@ -1,6 +1,6 @@
 """
 MANTIS – Core IA local
-Entry point
+Starter
 """
 
 import signal
@@ -10,7 +10,7 @@ from mantis.logger import setup_logger
 
 def main():
     logger = setup_logger()
-    logger.info("Boot sequence initiated")
+    logger.info("Démarrage de Mantis")
 
     kernel = Kernel()
 
