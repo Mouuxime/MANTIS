@@ -151,7 +151,7 @@ class Kernel:
 
         if hasattr(self, "lock_fd"):
             try:
-                os.remove(self.lock_fd)
+                os.close(self.lock_fd)
                 os.remove(LOCK_FILE)
             except Exception:
                 pass
