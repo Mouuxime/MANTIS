@@ -16,6 +16,14 @@ class IntentParser:
                 source="cli",
                 confidence=1.0
             )
+        
+        if text in ("shutdown"):
+            return Intent(
+                name="system.shutdown",
+                raw=text,
+                source="cli",
+                confidence=1.0
+            )
 
         if any(word in text for word in ("météo", "meteo", "temps", "weather")):
             location = None

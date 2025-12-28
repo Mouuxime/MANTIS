@@ -8,6 +8,8 @@ import sys
 import time
 import getpass
 
+from enum import Enum, auto
+
 from mantis.event_bus import EventBus
 from mantis.logger import setup_logger
 from mantis.context import Context
@@ -32,10 +34,17 @@ def pid_is_running(pid: int) -> bool:
         return False
     else:
         return False
-
+    
+class KernelState(Enum):
+    STARTING = auto()
+    RUNNING = auto()
+    SHUTTING_DOWN = auto()
+    STOPPED = auto()
 
 class Kernel:
     def __init__(self):
+        self.state = KernelState.STARTING
+
         self.running = False
         self.logger = setup_logger()
 
@@ -43,7 +52,11 @@ class Kernel:
         
         self.event_bus = EventBus()
 
-        self.skills = [skill_cls() for skill_cls in SKILL_REGISTRY]
+        self.skills = []
+        for skill_cls in SKILL_REGISTRY:
+            skill = skill_cls()
+            skill.kernel = self
+            self.skills.append(skill)
 
         self.router = SkillRouter(self.skills)
         print("[KERNEL] Loaded Skills]:", [s.name for s in self.skills])
@@ -69,6 +82,8 @@ class Kernel:
             )
         else:
             self.tts = DummyTTS()
+
+        self.state = KernelState.RUNNING
 
 
     def start(self):
@@ -117,6 +132,34 @@ class Kernel:
         )
         self.stop()
 
+    def shutdown(self, reason: str="unknown"):
+        if self.state == KernelState.SHUTTING_DOWN:
+            return
+        
+        self.logger.info(f"Shutdown requested: {reason}")
+        self.state = KernelState.SHUTTING_DOWN
+
+        if hasattr(self.event_bus, "shutdown"):
+            self.event_bus.shutdown()
+
+        for skill in self.skills:
+            if hasattr(skill, "shutdown"):
+                try:
+                    skill.shutdown()
+                except Exception as e:
+                    self.logger.error(f"Skill {skill.__class__.__name__} shutdown failed: {e}")
+
+        if hasattr(self, "lock_fd"):
+            try:
+                os.remove(self.lock_fd)
+                os.remove(LOCK_FILE)
+            except Exception:
+                pass
+
+        self.running = False
+        self.state = KernelState.STOPPED
+        sys.exit(0)
+
 
     def on_system_start(self, payload=None):
         self.context.set("system.status", "running")
@@ -127,6 +170,10 @@ class Kernel:
 
 
     def on_intent(self, intent):
+        if self.state == KernelState.SHUTTING_DOWN:
+            self.logger.warning(f"Intent '{intent.name}' ignored: kernel is shutting down")
+            return None
+
         self.logger.info(
             f"Intent received: {intent.name}"
             f"(source={intent.source}, confidence={intent.confidence})"

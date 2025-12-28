@@ -8,6 +8,7 @@ from typing import Callable, Any
 
 class EventBus:
     def __init__(self):
+        self.running = True
         self._subscribers = defaultdict(list)
 
     def subscribe(self, event_name: str, callback: Callable[[Any], None]):
@@ -25,3 +26,6 @@ class EventBus:
                 callback(payload)
             except Exception as e:
                 print(f"[EVENT BUS] Error in '{event_name}' handler: {e}")
+
+    def shutdown(self):
+        self.running = False
