@@ -8,47 +8,38 @@ class TemplatesNLG:
         user_text: str | None = None,
         introduce: bool = False
     ) -> str:
-        intro = ""
-        if introduce:
-            intro = "Bonjour, je suis Mantis. "
+        intro = "Bonjour, je suis Mantis. " if introduce else ""
 
-        #Skill response
-        if response is not None:
+        # Skill response (unified)
+        if response is not None and response.type == "skill":
 
-            print("\n[DEBUG][TemplatesNLG] response =", response)
-            print("[DEBUG][TemplatesNLG] type(response) =", type(response))
-
-            if not isinstance(response, dict):
-                print("[DEBUG][TemplatesNLG] dir(response) =", dir (response))
-
-            if isinstance(response, dict):
-                print("[DEBUG][TemplatesNLG] response.keys() =", response.keys())
-
-            #---System status---
-            if response.type == "system_status":
+            # ---- SYSTEM ----
+            if response.skill == "system":
                 user = response.data.get("user", "inconnu")
+                status = response.data.get("status", "unknown")
+
                 base = random.choice([
                     f"Le système fonctionne correctement. Utilisateur actif : {user}.",
                     f"Tout est opérationnel. Connecté en tant que {user}.",
-                    f"Le système est en marche. Utilisateur courant : {user}."
+                    f"Le système est en marche. Utilisateur courant : {user}.",
                 ])
                 return intro + base
-            
-            #---Weather---
-            if response.type == "weather":
+
+            # ---- WEATHER ----
+            if response.skill == "weather":
                 data = response.data
                 location = data.get("location", "unknown")
 
                 if location == "unknown":
-                    return intro + "Pour vous donner la météo, j'ai besoin de connaître la ville."
-                
+                    return intro + "Pour vous donner la météo, j’ai besoin de connaître la ville."
+
                 return intro + (
-                    f"(Simulation) A {location}, il fait actuellement"
-                    f"{data.get('temperature')}°C avec un temps {data.get('condition')}"
+                    f"(Simulation) À {location}, il fait actuellement "
+                    f"{data.get('temperature')}°C avec un temps {data.get('condition')}."
                 )
-            
+
+            # ---- UNKNOWN SKILL ----
             return intro + "Cette action a été exécutée."
 
-        #Fallback
-        base = "Je ne sais pas encore répondre à cette demande."
-        return intro + base
+        # Fallback (no response)
+        return intro + "Je ne sais pas encore répondre à cette demande."

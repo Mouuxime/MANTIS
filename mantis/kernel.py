@@ -12,7 +12,8 @@ from mantis.event_bus import EventBus
 from mantis.logger import setup_logger
 from mantis.context import Context
 from mantis.skill_router import SkillRouter
-from mantis.skills.system import SystemSkill
+import mantis.skills
+from mantis.skills.registry import SKILL_REGISTRY
 from mantis.intent import Intent
 from mantis.intent_parser import IntentParser
 from mantis.response import ResponseBuilder
@@ -32,6 +33,7 @@ def pid_is_running(pid: int) -> bool:
     else:
         return False
 
+
 class Kernel:
     def __init__(self):
         self.running = False
@@ -41,10 +43,10 @@ class Kernel:
         
         self.event_bus = EventBus()
 
-        self.skills = [
-            SystemSkill(),
-        ]
+        self.skills = [skill_cls() for skill_cls in SKILL_REGISTRY]
+
         self.router = SkillRouter(self.skills)
+        print("[KERNEL] Loaded Skills]:", [s.name for s in self.skills])
 
         self.event_bus.subscribe("system.start", self.on_system_start)
         #self.event_bus.subscribe("intent.received", self.on_intent)

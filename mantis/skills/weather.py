@@ -3,8 +3,10 @@ Weather Skill
 """
 
 from mantis.skills.base import Skill
+from mantis.skills.registry import register
 from mantis.intent import Intent
 
+@register
 class WeatherSkill(Skill):
     name = "weather"
 
@@ -19,13 +21,8 @@ class WeatherSkill(Skill):
         location = intent.entities.get("location", "unknown")
 
         return {
-            "type": "skill",
-            "skill": self.name,
-            "intent": intent.name,
-            "data": {
                 "location": location,
                 "temperature": 20,
                 "condition": "sunny",
                 "source": "mock",
-            }
         }

@@ -3,9 +3,10 @@ System Skill
 """
 
 from mantis.skills.base import Skill
+from mantis.skills.registry import register
 from mantis.intent import Intent
 
-
+@register
 class SystemSkill(Skill):
     name = "system"
 
