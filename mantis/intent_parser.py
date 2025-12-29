@@ -4,12 +4,12 @@ MANTIS - Intent Parser
 
 from mantis.intent import Intent
 
-
 class IntentParser:
     def parse(self, text: str) -> Intent | None:
-        text = text.strip().lower()
+        command = text.strip().lower()
+        def parse(self, text: str): print(f"[DEBUG PARSER] raw text = '{text}'")
 
-        if text in ("status", "system status", "system.status"):
+        if command in ("status", "system status", "system.status"):
             return Intent(
                 name="system.status",
                 raw=text,
@@ -17,7 +17,23 @@ class IntentParser:
                 confidence=1.0
             )
         
-        if text in ("shutdown"):
+        if command in ("exit", "quit"):
+            return Intent(
+                name="system.exit",
+                raw=text,
+                source="cli",
+                confidence=1.0
+            )
+        
+        if command in ("restart"):
+            return Intent(
+                name="system.restart",
+                raw=text,
+                source="cli",
+                confidence=1.0
+            )
+        
+        if command in ("shutdown"):
             return Intent(
                 name="system.shutdown",
                 raw=text,

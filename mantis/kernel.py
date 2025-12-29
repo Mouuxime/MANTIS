@@ -16,6 +16,7 @@ from mantis.context import Context
 from mantis.skill_router import SkillRouter
 import mantis.skills
 from mantis.skills.registry import SKILL_REGISTRY
+from mantis.permissions import UserPermission
 from mantis.intent import Intent
 from mantis.intent_parser import IntentParser
 from mantis.response import ResponseBuilder
@@ -48,6 +49,12 @@ class Kernel:
         self.running = False
         self.logger = setup_logger()
 
+        self.user_permissions_by_source = {
+            "cli": UserPermission.ADMIN,
+            "voice": UserPermission.USER,
+            "ha": UserPermission.USER,
+        }
+
         self.context = Context()
         
         self.event_bus = EventBus()
@@ -59,7 +66,7 @@ class Kernel:
             self.skills.append(skill)
 
         self.router = SkillRouter(self.skills)
-        print("[KERNEL] Loaded Skills]:", [s.name for s in self.skills])
+        print("[KERNEL] [Loaded Skills]:", [s.name for s in self.skills])
 
         self.event_bus.subscribe("system.start", self.on_system_start)
         #self.event_bus.subscribe("intent.received", self.on_intent)
@@ -122,7 +129,7 @@ class Kernel:
         sys.exit(0)
 
 
-    def restart(self):
+    def restart(self, reason: str="unknown"):
         self.logger.info("Redémarrage de Mantis")
 
         python = sys.executable
@@ -170,6 +177,8 @@ class Kernel:
 
 
     def on_intent(self, intent):
+        user_perm = self.get_user_permission(intent)
+        self.logger.info(f"[USER] source={intent.source} permission={user_perm.name}")
         if self.state == KernelState.SHUTTING_DOWN:
             self.logger.warning(f"Intent '{intent.name}' ignored: kernel is shutting down")
             return None
@@ -206,6 +215,12 @@ class Kernel:
         )
         return text
     
+    def get_user_permission(self, intent):
+        return self.user_permissions_by_source.get(
+            intent.source,
+            UserPermission.GUEST
+        )
+    
 
     def cli_loop(self):
         self.logger.info("CLI ready. Type 'exit' to quit.")
@@ -213,14 +228,6 @@ class Kernel:
         while self.running:
             try:
                 text = input("> ")
-
-                if text.strip().lower() in ("exit", "quit"):
-                    self.stop()
-                    return
-                
-                if text.strip().lower() in ("restart", "reload", "load"):
-                    self.restart()
-                    return
                 
                 intent = self.intent_parser.parse(text)
 
@@ -239,5 +246,8 @@ class Kernel:
                     self.tts.speak(response)
 
             except (EOFError, KeyboardInterrupt):
-                self.stop()
+                intent = Intent(
+                    name="system.shutdown",
+                    raw="exit"
+                )
                 return

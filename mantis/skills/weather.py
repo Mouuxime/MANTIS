@@ -4,11 +4,13 @@ Weather Skill
 
 from mantis.skills.base import Skill
 from mantis.skills.registry import register
+from mantis.permissions import SkillPermission
 from mantis.intent import Intent
 
 @register
 class WeatherSkill(Skill):
     name = "weather"
+    permission = SkillPermission.PUBLIC
 
     def can_handle(self, intent: Intent, context) -> bool:
         return intent.name in (
