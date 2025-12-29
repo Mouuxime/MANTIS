@@ -9,14 +9,6 @@ class IntentParser:
         command = text.strip().lower()
         def parse(self, text: str): print(f"[DEBUG PARSER] raw text = '{text}'")
 
-        if command in ("status", "system status", "system.status"):
-            return Intent(
-                name="system.status",
-                raw=text,
-                source="cli",
-                confidence=1.0
-            )
-        
         if command in ("exit", "quit"):
             return Intent(
                 name="system.exit",
@@ -40,6 +32,15 @@ class IntentParser:
                 source="cli",
                 confidence=1.0
             )
+        
+        if command in ("status", "system status", "system.status"):
+            return Intent(
+                name="system.status",
+                raw=text,
+                source="cli",
+                confidence=1.0
+            )
+        
 
         if any(word in text for word in ("météo", "meteo", "temps", "weather")):
             location = None
