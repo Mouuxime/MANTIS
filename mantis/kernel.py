@@ -194,13 +194,20 @@ class Kernel:
         result = self._execute_skill(skill, intent)
         return result
     
+    def _route_skill(self,intent):
+        return self.router.route(intent, self.context)
     
+    def _execute_skill(self, skill, intent):
+        return skill.execute(intent, self.context)
+
+    def _identify_user(self, intent):
+        return self.get_user_permission(intent)
+
     def get_user_permission(self, intent):
         return self.user_permissions_by_source.get(
             intent.source,
             UserPermission.GUEST
-        )
-    
+        )   
 
     def cli_loop(self):
         self.logger.info("CLI ready. Type 'exit' to quit.")
@@ -223,7 +230,9 @@ class Kernel:
 
                 if response:
                     print(response)
-                    self.tts.speak(response)
+
+                    if isinstance(response, str):
+                        self.tts.speak(response)
 
             except (EOFError, KeyboardInterrupt):
                 intent = Intent(
