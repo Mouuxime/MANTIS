@@ -12,7 +12,7 @@ class SystemSkill(Skill):
     name = "system.status"
 
     def can_handle(self, intent: str, context) -> bool:
-        return intent.name == "system.status"
+        return intent.name == self.name
 
     def execute(self, intent: str, context):
         return {
@@ -27,7 +27,7 @@ class ExitSkill(Skill):
     allow_override = True
 
     def can_handle(self, intent: Intent, context) -> bool:
-        return intent.name == "system.exit"
+        return intent.name == self.name
     
     def execute(self, intent, context):
         self.kernel.logger.info("[FLOW] Exit requested")
@@ -41,7 +41,7 @@ class RestartSkill(Skill):
     allow_override = True
 
     def can_handle(self, intent: Intent, context) -> bool:
-        return intent.name == "system.restart"
+        return intent.name == self.name
     
     def execute(self, intent, context):
         self.kernel.logger.info("[FLOW] Restart requested")
@@ -55,7 +55,7 @@ class ShutdownSkill(Skill):
     allow_override = True
 
     def can_handle(self, intent: Intent, context) -> bool:
-        return intent.name == "system.shutdown"
+        return intent.name == self.name
     
     def execute(self, intent, context):
         self.kernel.logger.info("[FLOW] Shutdown requested")
