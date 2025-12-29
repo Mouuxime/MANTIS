@@ -177,43 +177,23 @@ class Kernel:
 
 
     def on_intent(self, intent):
-        user_perm = self.get_user_permission(intent)
-        self.logger.info(f"[USER] source={intent.source} permission={user_perm.name}")
-        if self.state == KernelState.SHUTTING_DOWN:
-            self.logger.warning(f"Intent '{intent.name}' ignored: kernel is shutting down")
+        # 1. Identify user
+        user_perm = self._identify_user(intent)
+        self.logger.debug(f"[USER] source){intent.source} permission={user_perm.name}")
+
+        # 2. Log intent reception
+        self.logger.info(f"Intent received: {intent.name}" f"(source={intent.source}, confidence={intent.confidence})")
+
+        # 3. Route skill
+        skill = self._route_skill(intent)
+        if not skill: 
+            self.logger.info(f"No skill found for intent: {intent.name}") 
             return None
 
-        self.logger.info(
-            f"Intent received: {intent.name}"
-            f"(source={intent.source}, confidence={intent.confidence})"
-            )
-
-        introduced = self.context.get("introduced", False)
-
-        result = self.router.route(intent, self.context)
-
-        if result is not None:
-            response = self.response_builder.build(intent, result)
-
-            text = self.nlg.generate(
-                response=response,
-                introduce=not introduced
-            )
-        
-        else:
-            text = self.nlg.generate(
-                user_text=intent.raw,
-                introduce=not introduced
-            )
-            
-        if not introduced:
-            self.context.set("introduced", True)
-
-        self.logger.info(f"Final response generated")
-        self.logger.info(
-            f"INTRODUCE={not introduced} | introduced={introduced}"
-        )
-        return text
+        # 4. Execute skill
+        result = self._execute_skill(skill, intent)
+        return result
+    
     
     def get_user_permission(self, intent):
         return self.user_permissions_by_source.get(
