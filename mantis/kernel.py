@@ -17,6 +17,7 @@ from mantis.skill_router import SkillRouter
 import mantis.skills
 from mantis.skills.registry import SKILL_REGISTRY
 from mantis.permissions import UserPermission
+from mantis.permission_policy import PermissionPolicy
 from mantis.intent import Intent
 from mantis.intent_parser import IntentParser
 from mantis.response import ResponseBuilder
@@ -54,6 +55,8 @@ class Kernel:
             "voice": UserPermission.USER,
             "ha": UserPermission.USER,
         }
+
+        self.permission_policy = PermissionPolicy()
 
         self.context = Context()
         
@@ -182,16 +185,39 @@ class Kernel:
         self.logger.debug(f"[USER] source){intent.source} permission={user_perm.name}")
 
         # 2. Log intent reception
-        self.logger.info(f"Intent received: {intent.name}" f"(source={intent.source}, confidence={intent.confidence})")
+        self.logger.info(
+            f"Intent received: {intent.name}" 
+            f"(source={intent.source}, confidence={intent.confidence})"
+        )
 
         # 3. Route skill
         skill = self._route_skill(intent)
         if not skill: 
-            self.logger.info(f"No skill found for intent: {intent.name}") 
+            self.logger.info(
+                f"No skill found for intent: {intent.name}"
+            ) 
             return None
+        
+        # 4. Permission check
+        decision = self.permission_policy.check(
+            user_permission=user_perm,
+            skill_permission=skill.permission,
+            context=self.context,
+        )
 
-        # 4. Execute skill
+        self.logger.info(
+            f"[POLICY] user={user_perm.name} "
+            f"skill={skill.name} "
+            f"decision={'ALLOW' if decision.allowed else 'DENY'} "
+            f"reason={decision.reason}"
+        )
+
+        if not decision.allowed:
+            return "Désolé, vous n'avez pas la permission pour cette action."
+
+        # 5. Execute skill
         result = self._execute_skill(skill, intent)
+        
         return result
     
     def _route_skill(self,intent):
