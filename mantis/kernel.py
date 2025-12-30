@@ -82,7 +82,7 @@ class Kernel:
 
         self.response_builder = ResponseBuilder()
 
-        ENABLE_LLM = True
+        ENABLE_LLM = False
         if ENABLE_LLM:
             self.nlg = OllamaNLG(model="mistral")
         else:
