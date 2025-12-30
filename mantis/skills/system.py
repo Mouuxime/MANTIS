@@ -61,3 +61,20 @@ class ShutdownSkill(Skill):
         self.kernel.logger.info("[FLOW] Shutdown requested")
         self.kernel.shutdown(reason="intent:system.shutdown")
         return {"message": "Mantis is shutting down."}
+    
+@register
+class OverrideSkill(Skill):
+    name = "system.override"
+    permission = SkillPermission.SYSTEM
+
+    def can_handle(self, intent, context):
+        return intent.name == self.name
+    
+    def execute(self, intent, context):
+        duration=5 #(minutes)
+        duration_seconds=duration * 60
+        self.kernel.enable_override(
+            permission=SkillPermission.ADMIN,
+            duration_seconds=duration_seconds,
+        )
+        return f"Mode ADMIN activé pour : {duration} minutes"

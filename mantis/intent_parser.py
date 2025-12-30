@@ -41,6 +41,14 @@ class IntentParser:
                 confidence=1.0
             )
         
+        if command in ("sudo" "system.override"):
+            return Intent(
+                name="system.override",
+                raw=text,
+                source="cli",
+                confidence=1.0
+            )
+        
 
         if any(word in text for word in ("météo", "meteo", "temps", "weather")):
             location = None

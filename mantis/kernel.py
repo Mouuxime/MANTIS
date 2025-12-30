@@ -7,6 +7,7 @@ import os
 import sys
 import time
 import getpass
+import time
 
 from enum import Enum, auto
 
@@ -50,8 +51,11 @@ class Kernel:
         self.running = False
         self.logger = setup_logger()
 
+        self.override_permission = None
+        self.override_until = None
+
         self.user_permissions_by_source = {
-            "cli": UserPermission.ADMIN,
+            "cli": UserPermission.USER,
             "voice": UserPermission.USER,
             "ha": UserPermission.USER,
         }
@@ -78,7 +82,7 @@ class Kernel:
 
         self.response_builder = ResponseBuilder()
 
-        ENABLE_LLM = False
+        ENABLE_LLM = True
         if ENABLE_LLM:
             self.nlg = OllamaNLG(model="mistral")
         else:
@@ -181,8 +185,9 @@ class Kernel:
 
     def on_intent(self, intent):
         # 1. Identify user
-        user_perm = self._identify_user(intent)
-        self.logger.debug(f"[USER] source){intent.source} permission={user_perm.name}")
+        base_user_perm = self._identify_user(intent)
+        effective_user_perm = self.get_effective_user_permission(base_user_perm)
+        self.logger.debug(f"[USER] source){intent.source} permission={effective_user_perm.name}")
 
         # 2. Log intent reception
         self.logger.info(
@@ -200,13 +205,13 @@ class Kernel:
         
         # 4. Permission check
         decision = self.permission_policy.check(
-            user_permission=user_perm,
+            user_permission=effective_user_perm,
             skill_permission=skill.permission,
             context=self.context,
         )
 
         self.logger.info(
-            f"[POLICY] user={user_perm.name} "
+            f"[POLICY] user={effective_user_perm.name} "
             f"skill={skill.name} "
             f"decision={'ALLOW' if decision.allowed else 'DENY'} "
             f"reason={decision.reason}"
@@ -216,9 +221,14 @@ class Kernel:
             return "Désolé, vous n'avez pas la permission pour cette action."
 
         # 5. Execute skill
-        result = self._execute_skill(skill, intent)
-        
-        return result
+        try:
+            result = self._execute_skill(skill, intent)
+            return result
+        except Exception as e:
+            self.logger.error(
+                f"[ERROR] Skill {skill.name} execution failed: {e}"
+            )
+            return "Une erreur est survenue lors de l'éxecution de l'action."
     
     def _route_skill(self,intent):
         return self.router.route(intent, self.context)
@@ -234,6 +244,27 @@ class Kernel:
             intent.source,
             UserPermission.GUEST
         )   
+
+    def enable_override(self, permission, duration_seconds: int):
+        self.override_permission = permission
+        self.override_until = time.time() + duration_seconds
+        self.logger.warning(
+            f"[OVERRIDE] Permission elevated to {permission.name} "
+            f"for {duration_seconds}s"
+        )
+
+    def clear_override(self):
+        self.logger.warning("[OVERRIDE] Permission override cleared")
+        self.override_permission = None
+        self.override_until = None
+
+    def get_effective_user_permission(self, base_permission):
+        if self.override_permission and self.override_until:
+            if time.time() < self.override_until:
+                return self.override_permission
+            else:
+                self.clear_override()
+        return base_permission
 
     def cli_loop(self):
         self.logger.info("CLI ready. Type 'exit' to quit.")
