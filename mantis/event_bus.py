@@ -2,6 +2,12 @@
 MANTIS - Event Bus
 """
 
+"""
+EventBus - Future infrastructure component.
+
+Not used in the current execution flow.
+"""
+
 from collections import defaultdict
 from typing import Callable, Any
 
