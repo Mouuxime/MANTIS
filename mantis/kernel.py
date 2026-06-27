@@ -31,12 +31,22 @@ LOCK_FILE = "mantis.lock"
 def pid_is_running(pid: int) -> bool:
     if pid <= 0:
         return False
+    
+    if os.name == "nt":
+        result = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+            capture_output=True,
+            text=True,
+        )
+
+        return f'"{pid}"' in result.stdout
+
     try:
         os.kill(pid, 0)
     except OSError:
         return False
     else:
-        return False
+        return True
     
 class KernelState(Enum):
     STARTING = auto()
@@ -89,12 +99,16 @@ class Kernel:
             self.nlg = TemplatesNLG()
         
         ENABLE_TTS = True
-        if ENABLE_TTS:
+        piper_path = r"C:\piper\piper.exe"
+        model_path = r"C:\piper\voices\fr_FR-upmc-medium.onnx"
+        
+        if ENABLE_TTS and os.path.exists(piper_path) and os.path.exists(model_path):
             self.tts = PiperTTS(
-                piper_path=r"C:\piper\piper.exe",
-                model_path=r"C:\piper\voices\fr_FR-upmc-medium.onnx"
+                piper_path=piper_path,
+                model_path=model_path
             )
         else:
+            self.logger.warning("[TTS] Piper unavailable, using DummyTTS")
             self.tts = DummyTTS()
 
         self.state = KernelState.RUNNING
@@ -107,9 +121,25 @@ class Kernel:
                 os.O_CREAT | os.O_EXCL | os.O_WRONLY
             )
             os.write(self.lock_fd, str(os.getpid()).encode())
+
         except FileExistsError:
-            self.logger.error("Another instance of Mantis is already running. Exiting")
-            sys.exit(1)
+            try:
+                with open(LOCK_FILE, "r", encoding="utf-8") as f:
+                    existing_pid = int(f.read().strip())
+            except (OSError, ValueError):
+                existing_pid = None
+            if existing_pid and pid_is_running(existing_pid):
+                self.logger.error("Another instance of Mantis is already running. Exiting")
+                sys.exit(1)
+
+            self.logger.warning("[LOCK] Stale lock file found, replacing it")
+            os.remove(LOCK_FILE)
+
+            self.lock_fd = os.open(
+                LOCK_FILE,
+                os.O_CREAT | os.O_EXCL | os.O_WRONLY
+            )
+            os.write(self.lock_fd, str(os.getpid()).encode())
 
         self.running = True
         self.logger.info("Kernel started")
@@ -223,7 +253,7 @@ class Kernel:
         # 5. Execute skill
         try:
             result = self._execute_skill(skill, intent)
-            return result
+            return self.response_builder.build(intent, result)
         except Exception as e:
             self.logger.error(
                 f"[ERROR] Skill {skill.name} execution failed: {e}"
@@ -286,10 +316,15 @@ class Kernel:
                 response = self.on_intent(intent)
 
                 if response:
-                    print(response)
-
                     if isinstance(response, str):
-                        self.tts.speak(response)
+                        output = response
+                    else:
+                        output = self.nlg.generate(response=response)
+
+                    print(output)
+
+                    if isinstance(output, str):
+                        self.tts.speak(output)
 
             except (EOFError, KeyboardInterrupt):
                 intent = Intent(
