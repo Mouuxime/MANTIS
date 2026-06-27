@@ -25,6 +25,9 @@ class ResponseBuilder:
        if result is None:
            return Response(type="none")
        
+       if isinstance(result, str):
+           result = {"message": result}
+       
        skill_name = intent.name.split(".", 1)[0]
 
        return Response(

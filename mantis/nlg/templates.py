@@ -13,6 +13,9 @@ class TemplatesNLG:
         # Skill response (unified)
         if response is not None and response.type == "skill":
 
+            if "message" in response.data:
+                return intro + response.data["message"]
+
             # ---- SYSTEM ----
             if response.skill == "system":
                 user = response.data.get("user", "inconnu")

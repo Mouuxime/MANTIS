@@ -4,7 +4,7 @@ System Skill
 
 from mantis.skills.base import Skill
 from mantis.skills.registry import register
-from mantis.permissions import SkillPermission
+from mantis.permissions import SkillPermission, UserPermission
 from mantis.intent import Intent
 
 @register
@@ -74,7 +74,7 @@ class OverrideSkill(Skill):
         duration=5 #(minutes)
         duration_seconds=duration * 60
         self.kernel.enable_override(
-            permission=SkillPermission.ADMIN,
+            permission=UserPermission.ADMIN,
             duration_seconds=duration_seconds,
         )
         return f"Mode ADMIN activé pour : {duration} minutes"
